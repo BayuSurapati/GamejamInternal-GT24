@@ -19,11 +19,18 @@ public class PlayerMovement : MonoBehaviour
 
     private bool isKnockingBack;
 
-    public AudioClip walk;
+    //public AudioClip walk;
 
     public float knockBackTime, knockBackForce;
     private float knockBackCounter;
     private Vector2 knockDir;
+
+    public float dashSpeed, dashLength;
+    private float dashCounter, activeMoveSpeed;
+
+    public float totalStamina, staminRefSpeed, dashCost;
+    [HideInInspector]
+    public float currentStamina;
     private void Awake()
     {
         instance = this;
@@ -35,28 +42,34 @@ public class PlayerMovement : MonoBehaviour
         //SR = GetComponent<Sprite>();
         RB = GetComponent<Rigidbody2D>();
         anim = GetComponent<Animator>();
+        activeMoveSpeed = moveSpeed;
+        currentStamina = totalStamina;
+
+        UIManager.instance.UpdateStamina();
     }
 
     // Update is called once per frame
     void Update()
     {
         Movement();
-        Attack();
+        
     }
 
     public void Movement()
     {
+
         if (!isKnockingBack)
         {
             //transform.position = new Vector3(transform.position.x + (Input.GetAxisRaw("Horizontal") * moveSpeed * Time.deltaTime), (transform.position.y + Input.GetAxisRaw("Vertical") * moveSpeed * Time.deltaTime), transform.position.z);
 
-            RB.velocity = new Vector2(Input.GetAxisRaw("Horizontal"), Input.GetAxisRaw("Vertical")).normalized * moveSpeed;
+            RB.velocity = new Vector2(Input.GetAxisRaw("Horizontal"), Input.GetAxisRaw("Vertical")).normalized * activeMoveSpeed;
             anim.SetFloat("Speed", RB.velocity.magnitude);
 
             if (RB.velocity != Vector2.zero)
             {
                 if (Input.GetAxisRaw("Horizontal") != 0)
                 {
+                    AudioManager.instance.playSFX(0);
                     SR.sprite = playerD[0];
                     Instantiate(walkEffect, transform.position, transform.rotation);
                     if (Input.GetAxisRaw("Horizontal") < 0)
@@ -74,6 +87,7 @@ public class PlayerMovement : MonoBehaviour
                 }
                 else
                 {
+                    AudioManager.instance.playSFX(0);
                     if (Input.GetAxisRaw("Vertical") < 0)
                     {
                         Instantiate(walkEffect, transform.position, transform.rotation);
@@ -90,6 +104,8 @@ public class PlayerMovement : MonoBehaviour
                     }
                 }
             }
+            Attack();
+            Dashing();
         }
         else
         {
@@ -108,7 +124,38 @@ public class PlayerMovement : MonoBehaviour
         if (Input.GetKeyDown(KeyCode.J))
         {
             wpnAnim.SetTrigger("Attack");
+            AudioManager.instance.playSFX(1);
         }
+    }
+
+    public void Dashing()
+    {
+        if(dashCounter <= 0)
+        {
+            if (Input.GetKeyDown(KeyCode.Space) && currentStamina >= dashCost)
+            {
+                activeMoveSpeed = dashSpeed;
+                dashCounter = dashLength;
+                currentStamina -= dashCost;
+            }
+        }
+        else
+        {
+            dashCounter -= Time.deltaTime;
+            if(dashCounter <= 0)
+            {
+                activeMoveSpeed = moveSpeed;
+            }
+        }
+
+        currentStamina += staminRefSpeed * Time.deltaTime;
+
+        if(currentStamina > totalStamina)
+        {
+            currentStamina = totalStamina;
+        }
+
+        UIManager.instance.UpdateStamina();
     }
 
     public void PlayerHit(Vector3 kPos)
