@@ -14,6 +14,16 @@ public class PlayerMovement : MonoBehaviour
     public Sprite[] playerD;
     public Animator wpnAnim;
 
+    public GameObject hurtEffect;
+    public GameObject walkEffect;
+
+    private bool isKnockingBack;
+
+    public AudioClip walk;
+
+    public float knockBackTime, knockBackForce;
+    private float knockBackCounter;
+    private Vector2 knockDir;
     private void Awake()
     {
         instance = this;
@@ -36,42 +46,59 @@ public class PlayerMovement : MonoBehaviour
 
     public void Movement()
     {
-        //transform.position = new Vector3(transform.position.x + (Input.GetAxisRaw("Horizontal") * moveSpeed * Time.deltaTime), (transform.position.y + Input.GetAxisRaw("Vertical") * moveSpeed * Time.deltaTime), transform.position.z);
-
-        RB.velocity = new Vector2(Input.GetAxisRaw("Horizontal"), Input.GetAxisRaw("Vertical")).normalized * moveSpeed;
-        anim.SetFloat("Speed", RB.velocity.magnitude);
-
-        if(RB.velocity != Vector2.zero)
+        if (!isKnockingBack)
         {
-            if (Input.GetAxisRaw("Horizontal")!=0)
+            //transform.position = new Vector3(transform.position.x + (Input.GetAxisRaw("Horizontal") * moveSpeed * Time.deltaTime), (transform.position.y + Input.GetAxisRaw("Vertical") * moveSpeed * Time.deltaTime), transform.position.z);
+
+            RB.velocity = new Vector2(Input.GetAxisRaw("Horizontal"), Input.GetAxisRaw("Vertical")).normalized * moveSpeed;
+            anim.SetFloat("Speed", RB.velocity.magnitude);
+
+            if (RB.velocity != Vector2.zero)
             {
-                SR.sprite = playerD[0];
-                if (Input.GetAxisRaw("Horizontal") < 0)
+                if (Input.GetAxisRaw("Horizontal") != 0)
                 {
-                    SR.flipX = true;
-                    wpnAnim.SetFloat("dirX", -1f);
-                    wpnAnim.SetFloat("dirY", 0f);
+                    SR.sprite = playerD[0];
+                    Instantiate(walkEffect, transform.position, transform.rotation);
+                    if (Input.GetAxisRaw("Horizontal") < 0)
+                    {
+                        SR.flipX = true;
+                        wpnAnim.SetFloat("dirX", -1f);
+                        wpnAnim.SetFloat("dirY", 0f);
+                    }
+                    else
+                    {
+                        SR.flipX = false;
+                        wpnAnim.SetFloat("dirX", 1f);
+                        wpnAnim.SetFloat("dirY", 0f);
+                    }
                 }
                 else
                 {
-                    SR.flipX = false;
-                    wpnAnim.SetFloat("dirX", 1f);
-                    wpnAnim.SetFloat("dirY", 0f);
+                    if (Input.GetAxisRaw("Vertical") < 0)
+                    {
+                        Instantiate(walkEffect, transform.position, transform.rotation);
+                        SR.sprite = playerD[1];
+                        wpnAnim.SetFloat("dirX", 0f);
+                        wpnAnim.SetFloat("dirY", -1f);
+                    }
+                    else
+                    {
+                        Instantiate(walkEffect, transform.position, transform.rotation);
+                        SR.sprite = playerD[2];
+                        wpnAnim.SetFloat("dirX", 0f);
+                        wpnAnim.SetFloat("dirY", 1f);
+                    }
                 }
-            }else 
+            }
+        }
+        else
+        {
+            knockBackCounter -= Time.deltaTime;
+            RB.velocity = knockDir * knockBackForce;
+            
+            if(knockBackCounter <= 0)
             {
-                if (Input.GetAxisRaw("Vertical") < 0)
-                {
-                    SR.sprite = playerD[1];
-                    wpnAnim.SetFloat("dirX", 0f);
-                    wpnAnim.SetFloat("dirY", -1f);
-                }
-                else
-                {
-                    SR.sprite = playerD[2];
-                    wpnAnim.SetFloat("dirX", 0f);
-                    wpnAnim.SetFloat("dirY", 1f);
-                }
+                isKnockingBack = false;
             }
         }
     }
@@ -82,8 +109,16 @@ public class PlayerMovement : MonoBehaviour
         {
             wpnAnim.SetTrigger("Attack");
         }
-        else{
+    }
 
-        }
+    public void PlayerHit(Vector3 kPos)
+    {
+        knockBackCounter = knockBackTime;
+        isKnockingBack = true;
+
+        knockDir = transform.position - kPos;
+        knockDir.Normalize();
+
+        Instantiate(hurtEffect, transform.position, transform.rotation);
     }
 }
