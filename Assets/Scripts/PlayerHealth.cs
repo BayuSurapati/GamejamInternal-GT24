@@ -10,9 +10,9 @@ public class PlayerHealth : MonoBehaviour
     public int maxHealth;
 
     public float invincLength = 1f;
-    public float invincCounter;
-
+    private float invincCounter;
     public GameObject deathEffect;
+
 
     private void Awake()
     {
@@ -32,15 +32,13 @@ public class PlayerHealth : MonoBehaviour
         {
             invincCounter -= Time.deltaTime;
         }
-        DamagePlayer(1);
     }
 
     public void DamagePlayer(int damageAmount)
     {
-        if(invincCounter < 0)
+        if(invincCounter <= 0)
         {
             currentHealth -= damageAmount;
-
             invincCounter = invincLength;
 
             if(currentHealth <= 0)
@@ -49,7 +47,9 @@ public class PlayerHealth : MonoBehaviour
                 gameObject.SetActive(false);
 
                 Instantiate(deathEffect, transform.position, transform.rotation);
+                UIManager.instance.uiLose.SetActive(true);
             }
+            UIManager.instance.UpdateHealth();
         }   
     }
 }
